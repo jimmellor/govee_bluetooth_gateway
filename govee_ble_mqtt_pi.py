@@ -28,7 +28,6 @@ import configparser
 from time import gmtime, strftime, sleep
 from bluepy.btle import Scanner, DefaultDelegate, BTLEException
 import sys
-import paho.mqtt.client as mqtt
 
 # influx db imports
 
@@ -38,10 +37,10 @@ from influxdb import InfluxDBClient
 #from influxdb_client.client.write_api import SYNCHRONOUS
 
 # configuration
-# NOTE copy the config file govee_ble_mqtt_pi.conf TO /etc/govee_ble_mqtt_pi.conf and modify it there
+# NOTE on a raspberry pi the config file should be in /boot so that it is easily accessible from PC or Mac with a card reader
 conf = configparser.ConfigParser()
 
-conf.read('/etc/govee_ble_mqtt_pi.conf')
+conf.read('/boot/govee_ble_mqtt_pi.conf')
 
 # influx db configuration
 dbname = conf['influxdb']['name']
@@ -58,25 +57,15 @@ site_location = conf['site']['location']
 # hygrometer names
 hygrometer_names = conf['hygrometers']
 
-# write_api = client.write_api(write_options=SYNCHRONOUS)
-# query_api = client.query_api()
-
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
 
 def on_message(client, userdata, msg):
     print("on message")
 
-client = mqtt.Client()
-mqtt_prefix = conf['mqtt']['mqtt_gateway_name']
-mqtt_gateway_name = conf['mqtt']['mqtt_gateway_name']
-
 class ScanDelegate(DefaultDelegate):
     
     global client
-    # mqtt message topic/payload:  /prefix/gateway_name/mac/
-    global mqtt_prefix
-    global mqtt_gateway_name
     
     def handleDiscovery(self, dev, isNewDev, isNewData):
         #if (dev.addr == "a4:c1:38:xx:xx:xx") or (dev.addr == "a4:c1:38:xx:xx:xx"):
@@ -84,11 +73,10 @@ class ScanDelegate(DefaultDelegate):
             #returns a list, of which the [2] item of the [3] tupple is manufacturing data
             adv_list = dev.getScanData()
             adv_manuf_data = adv_list[3][2]
-            print("adv list = ", adv_list)
-            print("manuf data = ", adv_manuf_data)
 
             #resolve the name of the hygrometer
             try:
+                #device_id is the last 4 characters of the Complete Local Name which is in [0][2] of the scan data. It's used to resolve the name in the config file
                 device_id = adv_list[0][2].split("_")[1]
                 device_name = hygrometer_names[device_id]
             except KeyError:
@@ -134,11 +122,6 @@ class ScanDelegate(DefaultDelegate):
             mac=dev.addr
             signal = dev.rssi
 
-            #p = Point("MAC",mac).tag("percent humidity", "hum_percent").field("temp_F", temp_F)
-            #p = [Point("Temperature").tag("MAC",mac).field("temp_F", temp_F),Point("Humidity").tag("MAC",mac).field("percent humidity", hum_percent),Point("Battery").tag("MAC",mac).field("battery", battery_percent),Point("RSSI").field("rssi",signal)]
-            #write_api.write(bucket=bucket, record=p)
-
-
             # createa a json object for influxdb client with the temperature, humidity, battery, rssi, timestamp in the format "2009-11-10T23:00:00Z"
             time = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
             json_body = [
@@ -164,25 +147,7 @@ class ScanDelegate(DefaultDelegate):
             # write the json object to the influxdb
             influxdbclient.write_points(json_body)
 
-            
-            #print("mac=", mac, "   percent humidity ", hum_percent, "   temp_F = ", temp_F, "   battery percent=", battery_percent, "  rssi=", signal)
-            #mqtt_topic = mqtt_prefix + mqtt_gateway_name + mac + "/"
-
-            #client.publish(mqtt_topic+"rssi", signal, qos=0)
-            #client.publish(mqtt_topic+"temp_F", temp_F, qos=0)
-            #client.publish(mqtt_topic+"hum", hum_percent, qos=0)
-            #client.publish(mqtt_topic+"battery_pct", battery_percent, qos=0)
-            
-            sys.stdout.flush()
-
 scanner = Scanner().withDelegate(ScanDelegate())
 
-#replace localhost with your MQTT broker
-#client.connect("localhost",1883,60)
-
-#client.on_connect = on_connect
-#client.on_message = on_message
-
-while True:
-    scanner.scan(60.0, passive=True)
+scanner.scan(60.0, passive=True)
 
