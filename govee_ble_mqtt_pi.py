@@ -126,7 +126,7 @@ class ScanDelegate(DefaultDelegate):
             time = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
             json_body = [
                 {
-                    "measurement": "TempHumitidy",
+                    "measurement": "TempHumidity",
                     "time": time,
                     "tags": {
                         "MAC": mac,
@@ -149,5 +149,6 @@ class ScanDelegate(DefaultDelegate):
 
 scanner = Scanner().withDelegate(ScanDelegate())
 
-scanner.scan(60.0, passive=True)
+while True:
+    scanner.scan(60.0, passive=True)
 
