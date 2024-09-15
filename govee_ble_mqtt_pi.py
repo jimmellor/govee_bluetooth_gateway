@@ -49,7 +49,7 @@ dbuser = conf['influxdb']['user']
 dbpass = conf['influxdb']['pass']
 dbhost = conf['influxdb']['host']
 dbport = conf['influxdb']['port']
-client = InfluxDBClient(dbhost, dbport, dbuser, dbpass, dnname)
+client = InfluxDBClient(dbhost, dbport, dbuser, dbpass, dbname)
 
 # write_api = client.write_api(write_options=SYNCHRONOUS)
 # query_api = client.query_api()
