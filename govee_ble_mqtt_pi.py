@@ -23,20 +23,44 @@ sudo nohup python3 govee_ble_mqtt_pi.py &
 
 from __future__ import print_function
 
+import configparser
+
 from time import gmtime, strftime, sleep
 from bluepy.btle import Scanner, DefaultDelegate, BTLEException
 import sys
 import paho.mqtt.client as mqtt
+
+# influx db imports
+
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
+
+# configuration
+# NOTE copy the config file govee_ble_mqtt_pi.conf TO /etc/ and modify
+conf =configparser.ConfigParser()
+config.read('/etc/govee_ble_mqtt_pi.conf')
+
+# influx db configuration
+influxdbbucket = conf['influxdb']['bucket']
+influxdbtoken = conf['influxdb']['token']
+influxdbhost = conf['influxdb']['host']
+influxdborg = conf['influxdb']['org']
+client = InfluxDBClient(url=influxdbhost, token=influxdbtoken, org=influxdborg)
+
+
+write_api = client.write_api(write_options=SYNCHRONOUS)
+query_api = client.query_api()
+
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
 
 def on_message(client, userdata, msg):
     print("on message")
-    
+
 client = mqtt.Client()
-mqtt_prefix = "/sensor/govee"
-mqtt_gateway_name = "/upstairs/"
+mqtt_prefix = conf['mqtt']['mqtt_gateway_name']
+mqtt_gateway_name = conf['mqtt']['mqtt_gateway_name']
 
 class ScanDelegate(DefaultDelegate):
     
@@ -47,19 +71,19 @@ class ScanDelegate(DefaultDelegate):
     
     def handleDiscovery(self, dev, isNewDev, isNewData):
         #if (dev.addr == "a4:c1:38:xx:xx:xx") or (dev.addr == "a4:c1:38:xx:xx:xx"):
-        if dev.addr[:8]=="a4:c1:38":          
-            
+        if dev.addr[:8]=="a4:c1:38":
             #returns a list, of which the [2] item of the [3] tupple is manufacturing data
             adv_list = dev.getScanData()
-            
-            adv_manuf_data = adv_list[2][2]
-            
-            #print("manuf data = ", adv_manuf_data)
+            adv_manuf_data = adv_list[3][2]
+            print("adv list = ", adv_list)
+            print("manuf data = ", adv_manuf_data)
 
             #this is the location of the encoded temp/humidity and battery data
             temp_hum_data = adv_manuf_data[6:12]
             battery = adv_manuf_data[12:14]
-            
+
+            print("temp hum data = ", temp_hum_data)
+            print("battery data = ", battery)
             #convert to integer
             val = (int(temp_hum_data, 16))
 
@@ -94,23 +118,27 @@ class ScanDelegate(DefaultDelegate):
             mac=dev.addr
             signal = dev.rssi
 
+            #p = Point("MAC",mac).tag("percent humidity", "hum_percent").field("temp_F", temp_F)
+            p = [Point("Temperature").tag("MAC",mac).field("temp_F", temp_F),Point("Humidity").tag("MAC",mac).field("percent humidity", hum_percent),Point("Battery").tag("MAC",mac).field("battery", battery_percent),Point("RSSI").field("rssi",signal)]
+            write_api.write(bucket=bucket, record=p)
+            
             #print("mac=", mac, "   percent humidity ", hum_percent, "   temp_F = ", temp_F, "   battery percent=", battery_percent, "  rssi=", signal)
-            mqtt_topic = mqtt_prefix + mqtt_gateway_name + mac + "/"
+            #mqtt_topic = mqtt_prefix + mqtt_gateway_name + mac + "/"
 
-            client.publish(mqtt_topic+"rssi", signal, qos=0)
-            client.publish(mqtt_topic+"temp_F", temp_F, qos=0)
-            client.publish(mqtt_topic+"hum", hum_percent, qos=0)
-            client.publish(mqtt_topic+"battery_pct", battery_percent, qos=0)
+            #client.publish(mqtt_topic+"rssi", signal, qos=0)
+            #client.publish(mqtt_topic+"temp_F", temp_F, qos=0)
+            #client.publish(mqtt_topic+"hum", hum_percent, qos=0)
+            #client.publish(mqtt_topic+"battery_pct", battery_percent, qos=0)
             
             sys.stdout.flush()
 
 scanner = Scanner().withDelegate(ScanDelegate())
 
 #replace localhost with your MQTT broker
-client.connect("localhost",1883,60)
+#client.connect("localhost",1883,60)
 
-client.on_connect = on_connect
-client.on_message = on_message
+#client.on_connect = on_connect
+#client.on_message = on_message
 
 while True:
     scanner.scan(60.0, passive=True)
