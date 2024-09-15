@@ -146,7 +146,7 @@ class ScanDelegate(DefaultDelegate):
                     "measurement": "TempHumitidy",
                     "time": time,
                     "tags": {
-                        "MAC": mac
+                        "MAC": mac,
                         "site": site_name,
                         "location": site_location,
                         "device_name": device_name
