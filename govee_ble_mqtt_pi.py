@@ -32,25 +32,28 @@ import paho.mqtt.client as mqtt
 
 # influx db imports
 
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb import InfluxDBClient
+
+#from influxdb_client import InfluxDBClient, Point
+#from influxdb_client.client.write_api import SYNCHRONOUS
 
 # configuration
-# NOTE copy the config file govee_ble_mqtt_pi.conf TO /etc/ and modify
-conf =configparser.ConfigParser()
+# NOTE copy the config file govee_ble_mqtt_pi.conf TO /etc/govee_ble_mqtt_pi.conf and modify it there
+conf = configparser.ConfigParser()
+
 config.read('/etc/govee_ble_mqtt_pi.conf')
 
 # influx db configuration
-influxdbbucket = conf['influxdb']['bucket']
-influxdbtoken = conf['influxdb']['token']
-influxdbhost = conf['influxdb']['host']
-influxdborg = conf['influxdb']['org']
-client = InfluxDBClient(url=influxdbhost, token=influxdbtoken, org=influxdborg)
+dbname = conf['influxdb']['name']
+dbuser = conf['influxdb']['user']
+dbpass = conf['influxdb']['pass']
+dbhost = conf['influxdb']['host']
+dbport = conf['influxdb']['port']
+dborg = conf['influxdb']['org']
+client = InfluxDBClient(dbhost, dbport, dbuser, dbpass, dnname)
 
-
-write_api = client.write_api(write_options=SYNCHRONOUS)
-query_api = client.query_api()
-
+# write_api = client.write_api(write_options=SYNCHRONOUS)
+# query_api = client.query_api()
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
@@ -119,8 +122,59 @@ class ScanDelegate(DefaultDelegate):
             signal = dev.rssi
 
             #p = Point("MAC",mac).tag("percent humidity", "hum_percent").field("temp_F", temp_F)
-            p = [Point("Temperature").tag("MAC",mac).field("temp_F", temp_F),Point("Humidity").tag("MAC",mac).field("percent humidity", hum_percent),Point("Battery").tag("MAC",mac).field("battery", battery_percent),Point("RSSI").field("rssi",signal)]
-            write_api.write(bucket=bucket, record=p)
+            #p = [Point("Temperature").tag("MAC",mac).field("temp_F", temp_F),Point("Humidity").tag("MAC",mac).field("percent humidity", hum_percent),Point("Battery").tag("MAC",mac).field("battery", battery_percent),Point("RSSI").field("rssi",signal)]
+            #write_api.write(bucket=bucket, record=p)
+
+
+            # createa a json object for influxdb client with the temperature, humidity, battery, rssi, timestamp in the format "2009-11-10T23:00:00Z"
+            time = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
+            json_body = [
+                {
+                    "measurement": "Temperature",
+                    "time": time,
+                    "tags": {
+                        "MAC": mac
+                    },
+                    "fields": {
+                        "temp_C": temp_C
+                    }
+                },
+                {
+                    "measurement": "Humidity",
+                    "time": time,
+                    "tags": {
+                        "MAC": mac
+                    },
+                    "fields": {
+                        "percent humidity": hum_percent
+                    }
+                },
+                {
+                    "measurement": "Battery",
+                    "time": time,
+                    "tags": {
+                        "MAC": mac
+                    },
+                    "fields": {
+                        "battery": battery_percent
+                    }
+                },
+                {
+                    "measurement": "RSSI",
+                    "time": time,
+                    "tags": {
+                        "MAC": mac
+                    },
+                    "fields": {
+                        "rssi": signal
+                    }
+                }
+            ]
+
+
+            # write the json object to the influxdb
+            write_api..write_points(json_body)
+
             
             #print("mac=", mac, "   percent humidity ", hum_percent, "   temp_F = ", temp_F, "   battery percent=", battery_percent, "  rssi=", signal)
             #mqtt_topic = mqtt_prefix + mqtt_gateway_name + mac + "/"
