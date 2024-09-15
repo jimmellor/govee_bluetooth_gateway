@@ -173,7 +173,7 @@ class ScanDelegate(DefaultDelegate):
 
 
             # write the json object to the influxdb
-            write_api..write_points(json_body)
+            write_api.write_points(json_body)
 
             
             #print("mac=", mac, "   percent humidity ", hum_percent, "   temp_F = ", temp_F, "   battery percent=", battery_percent, "  rssi=", signal)
