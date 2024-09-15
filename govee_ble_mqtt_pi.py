@@ -150,9 +150,9 @@ class ScanDelegate(DefaultDelegate):
 
                     },
                     "fields": {
-                        "temp_C": temp_C
-                        "humidity_percent": hum_percent
-                        "battery_percent": battery_percent
+                        "temp_C": temp_C,
+                        "humidity_percent": hum_percent,
+                        "battery_percent": battery_percent,
                         "ressi": signal
                     }
                 }
