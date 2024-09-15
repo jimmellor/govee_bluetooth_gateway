@@ -147,7 +147,9 @@ class ScanDelegate(DefaultDelegate):
                     "time": time,
                     "tags": {
                         "MAC": mac
-
+                        "site": site_name,
+                        "location": site_location,
+                        "device_name": device_name
                     },
                     "fields": {
                         "temp_C": temp_C,
