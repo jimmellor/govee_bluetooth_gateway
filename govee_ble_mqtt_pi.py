@@ -51,6 +51,13 @@ dbhost = conf['influxdb']['host']
 dbport = conf['influxdb']['port']
 influxdbclient = InfluxDBClient(dbhost, dbport, dbuser, dbpass, dbname)
 
+# site configuration
+site_name = conf['site']['name']
+site_location = conf['site']['location']
+
+# hygrometer names
+hygrometer_names = conf['hygrometers']
+
 # write_api = client.write_api(write_options=SYNCHRONOUS)
 # query_api = client.query_api()
 
@@ -80,6 +87,13 @@ class ScanDelegate(DefaultDelegate):
             print("adv list = ", adv_list)
             print("manuf data = ", adv_manuf_data)
 
+            #resolve the name of the hygrometer
+            try:
+                device_id = adv_list[0][2].split("_")[1]
+                device_name = hygrometer_names[device_id]
+            except KeyError:
+                device_name = device_id
+            
             #this is the location of the encoded temp/humidity and battery data
             temp_hum_data = adv_manuf_data[6:12]
             battery = adv_manuf_data[12:14]
@@ -129,43 +143,17 @@ class ScanDelegate(DefaultDelegate):
             time = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
             json_body = [
                 {
-                    "measurement": "Temperature",
+                    "measurement": "TempHumitidy",
                     "time": time,
                     "tags": {
                         "MAC": mac
+
                     },
                     "fields": {
                         "temp_C": temp_C
-                    }
-                },
-                {
-                    "measurement": "Humidity",
-                    "time": time,
-                    "tags": {
-                        "MAC": mac
-                    },
-                    "fields": {
-                        "percent humidity": hum_percent
-                    }
-                },
-                {
-                    "measurement": "Battery",
-                    "time": time,
-                    "tags": {
-                        "MAC": mac
-                    },
-                    "fields": {
-                        "battery": battery_percent
-                    }
-                },
-                {
-                    "measurement": "RSSI",
-                    "time": time,
-                    "tags": {
-                        "MAC": mac
-                    },
-                    "fields": {
-                        "rssi": signal
+                        "humidity_percent": hum_percent
+                        "battery_percent": battery_percent
+                        "ressi": signal
                     }
                 }
             ]
