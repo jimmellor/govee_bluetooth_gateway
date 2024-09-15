@@ -41,7 +41,7 @@ from influxdb import InfluxDBClient
 # NOTE copy the config file govee_ble_mqtt_pi.conf TO /etc/govee_ble_mqtt_pi.conf and modify it there
 conf = configparser.ConfigParser()
 
-config.read('/etc/govee_ble_mqtt_pi.conf')
+conf.read('/etc/govee_ble_mqtt_pi.conf')
 
 # influx db configuration
 dbname = conf['influxdb']['name']
