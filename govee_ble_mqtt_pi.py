@@ -49,7 +49,7 @@ dbuser = conf['influxdb']['user']
 dbpass = conf['influxdb']['pass']
 dbhost = conf['influxdb']['host']
 dbport = conf['influxdb']['port']
-client = InfluxDBClient(dbhost, dbport, dbuser, dbpass, dbname)
+influxdbclient = InfluxDBClient(dbhost, dbport, dbuser, dbpass, dbname)
 
 # write_api = client.write_api(write_options=SYNCHRONOUS)
 # query_api = client.query_api()
@@ -172,7 +172,7 @@ class ScanDelegate(DefaultDelegate):
 
 
             # write the json object to the influxdb
-            write_api.write_points(json_body)
+            influxdbclient.write_points(json_body)
 
             
             #print("mac=", mac, "   percent humidity ", hum_percent, "   temp_F = ", temp_F, "   battery percent=", battery_percent, "  rssi=", signal)
