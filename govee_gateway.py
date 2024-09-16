@@ -133,8 +133,8 @@ class ScanDelegate(DefaultDelegate):
             temp_hum_data = adv_manuf_data[6:12]
             battery = adv_manuf_data[12:14]
 
-            print("temp hum data = ", temp_hum_data)
-            print("battery data = ", battery)
+            # print("temp hum data = ", temp_hum_data)
+            # print("battery data = ", battery)
             #convert to integer
             val = (int(temp_hum_data, 16))
 
