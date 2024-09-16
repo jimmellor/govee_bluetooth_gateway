@@ -2,23 +2,80 @@
 '''
 This is a python Bluetooth advertisement scanner for the Govee brand Bluetooth
 temperature sensor.  Tested on model H5075 using Raspberry Pi 3.
-Temperature, humidity, and battery level is published as MQTT messages.
+Temperature, humidity, and battery level is published to local influxdb database using cronograf for visualization.
+
+Chronograph can be used to visualize the data by browsing to http://<host>:8888.  The data is stored in the "hygrometers" database.  The data is stored in the "TempHumidity" measurement.  The data is downsampled to 1 minute intervals and stored in the "TempHumidityDownsampled" measurement.  The data is stored with the following tags: MAC, site, location, device_name.  The fields are temp_C, humidity_percent, battery_percent, rssi.
 
 Credit:  I used information for Govee advertisement format from
 github.com/Thrilleratplay/GoveeWatcher
 
+INSTALLATION:
+
 Install dependencies:
  sudo apt-get install python3-pip libglib2.0-dev
  sudo pip3 install bluepy
- sudo apt install -y mosquitto mosquitto-clients
- sudo pip3 install paho-mqtt
+ sudo pip3 install influxdb
+ sudo apt-get install influxdb
+ sudo apt-get install chronograf
 
-Needs sudo to run on Raspbian
-sudo python3 govee_ble_mqtt_pi.py
+Create the influx database
+    influx
+    CREATE DATABASE "hygrometers"
 
-Run in background
-sudo nohup python3 govee_ble_mqtt_pi.py &
+Configure the influxdb retention policies, one for 1 day and one for infinity which will be used for downsampling
+    CREATE RETENTION POLICY "1day" ON "hygrometers" DURATION 1d REPLICATION 1 DEFAULT
+    CREATE RETENTION POLICY "inf" on "hygrometers" DURATION inf REPLICATION 1
 
+Configure the influxdb continuous query to downsample the data
+    CREATE CONTINUOUS QUERY "cq1m" ON "hygrometers" BEGIN SELECT mean(temp_C) as temp_C, mean(humidity_percent) as humidity_percent, mean(battery_percent) as battery_percent INTO "hygrometers"."inf"."TempHumidityDownsampled" FROM "TempHumidity" GROUP BY time(1min), MAC, site, location, device_name END             
+
+
+The configuration file is stored in /boot/govee_gateway.conf
+
+The configuration file is in the following format:
+[influxdb]
+name = hygrometers
+user = admin #default user is admin
+pass = admin #default password is admin
+host = localhost
+port = 8086
+
+[site]
+name = 1 Accacia Ave
+location = lat, long
+
+[hygrometers]
+D34E = Living Room  #last four digits of the MAC address of the hygrometer, also appears in the device name
+AD4F = Bedroom
+
+The configuration file is read at the beginning of the script.  The script will scan for the Govee hygrometers and publish the data to the influxdb database.
+Needs sudo to run on Raspbian:
+sudo python3 govee_gateway.py
+
+Run in background:
+sudo nohup python3 govee_gateway.py &
+
+Run as a service
+Create a service file:
+sudo nano /etc/systemd/system/govee_gateway.service
+
+Add the following to the file:
+[Unit]
+Description=Govee Gateway
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/govee_gateway.py
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+
+Enable and start the service:
+sudo systemctl enable govee_gateway.service
+sudo systemctl start govee_gateway.service
 '''
 
 from __future__ import print_function
@@ -30,17 +87,13 @@ from bluepy.btle import Scanner, DefaultDelegate, BTLEException
 import sys
 
 # influx db imports
-
 from influxdb import InfluxDBClient
-
-#from influxdb_client import InfluxDBClient, Point
-#from influxdb_client.client.write_api import SYNCHRONOUS
 
 # configuration
 # NOTE on a raspberry pi the config file should be in /boot so that it is easily accessible from PC or Mac with a card reader
 conf = configparser.ConfigParser()
 
-conf.read('/boot/govee_ble_mqtt_pi.conf')
+conf.read('/boot/govee_gateway.conf')
 
 # influx db configuration
 dbname = conf['influxdb']['name']
@@ -56,12 +109,6 @@ site_location = conf['site']['location']
 
 # hygrometer names
 hygrometer_names = conf['hygrometers']
-
-def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
-
-def on_message(client, userdata, msg):
-    print("on message")
 
 class ScanDelegate(DefaultDelegate):
     
