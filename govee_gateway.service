@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 Type=idle
-ExecStart=/usr/bin/python3 /home/pi/govee_gateway.py
+ExecStart=/usr/bin/python3 /home/pi/govee_bluetooth_gateway/govee_gateway.py
 Restart=always
 User=root
 
