@@ -1,12 +1,13 @@
 #!/usr/bin/python
 '''
 This is a python Bluetooth advertisement scanner for the Govee brand Bluetooth
-temperature sensor.  Tested on model H5075 using Raspberry Pi 3.
+temperature sensor.  Tested on model H5075 using Raspberry Pi Zero W.
 Temperature, humidity, and battery level is published to local influxdb database using cronograf for visualization.
 
 Chronograph can be used to visualize the data by browsing to http://<host>:8888.  The data is stored in the "hygrometers" database.  The data is stored in the "TempHumidity" measurement.  The data is downsampled to 1 minute intervals and stored in the "TempHumidityDownsampled" measurement.  The data is stored with the following tags: MAC, site, location, device_name.  The fields are temp_C, humidity_percent, battery_percent, rssi.
 
-Credit:  I used information for Govee advertisement format from
+Credit:
+Forked from tsaitsai/govee_bluetooth_gateway who used information for Govee advertisement format from
 github.com/Thrilleratplay/GoveeWatcher
 
 INSTALLATION:
