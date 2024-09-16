@@ -1,0 +1,12 @@
+[Unit]
+Description=Govee Gateway
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/govee_gateway.py
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
