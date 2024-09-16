@@ -31,7 +31,7 @@ Configure the influxdb continuous query to downsample the data
     CREATE CONTINUOUS QUERY "cq1m" ON "hygrometers" BEGIN SELECT mean(temp_C) as temp_C, mean(humidity_percent) as humidity_percent, mean(battery_percent) as battery_percent INTO "hygrometers"."inf"."TempHumidityDownsampled" FROM "TempHumidity" GROUP BY time(1min), MAC, site, location, device_name END             
 
 
-The configuration file is stored in /boot/govee_gateway.conf
+The configuration file is stored in /boot/firmware/govee_gateway.conf
 
 The configuration file is in the following format:
 [influxdb]
@@ -91,10 +91,10 @@ import sys
 from influxdb import InfluxDBClient
 
 # configuration
-# NOTE on a raspberry pi the config file should be in /boot so that it is easily accessible from PC or Mac with a card reader
+# NOTE on a raspberry pi the config file should be in /boot/firmware so that it is easily accessible from PC or Mac with a card reader
 conf = configparser.ConfigParser()
 
-conf.read('/boot/govee_gateway.conf')
+conf.read('/boot/firmware/govee_gateway.conf')
 
 # influx db configuration
 dbname = conf['influxdb']['name']
