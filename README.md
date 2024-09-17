@@ -24,10 +24,10 @@ github.com/Thrilleratplay/GoveeWatcher
 ##### Install dependencies
  ```
  sudo apt-get install python3-pip libglib2.0-dev
- sudo pip3 install bluepy
- sudo pip3 install influxdb
  sudo apt-get install influxdb
  sudo apt-get install chronograf
+ sudo pip3 install bluepy
+ sudo pip3 install influxdb
 ```
 *Note* this was designed to work influx db 1.x, as it's 32 bit and will run on older hardware.
 
