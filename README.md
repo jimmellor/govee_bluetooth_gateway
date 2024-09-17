@@ -4,7 +4,7 @@
 A python BLE advertisement scanner for the Govee brand
 temperature and humidity sensors. Tested on model H5075 using Raspberry Pi Zero W. Temperature, humidity, and battery level is published to local influxdb database (v1.x) using cronograf for visualization.
 
-### How it works
+#### How it works
 
 It uses the *bluepy* library to scan for the Govee advertisement packets, reads the temperature, humidity, battery level and signal strength from the advertisement packet and publishes it to an influxdb database. All data is retained fo 24hrs and a continuous query downsamples to 1 minute intervals and stored in a separate measurement infinately. The script is intended to be run as a service and can be started with systemd, run as root.  It reads the configuration from /boot/firmware/govee_gateway.conf.
 
@@ -12,13 +12,13 @@ This has been optimised for 32 bit raspberry pi products like the Pi Zero W.
 
 Chronograph can be used to visualize the data using a browser on another device to access the pi on port 8888 (default).  The data is stored in the "hygrometers" database in the "TempHumidity" measurement, downsampled to 1 minute intervals and stored in the "TempHumidityDownsampled" measurement. Data is tagged with `MAC`, `site`, `location`, `device_name`.  The fields are `temp_C`, `humidity_percent`, `battery_percent`, `rssi`.
 
-### Credit:
+#### Credit
 Forked from tsaitsai/govee_bluetooth_gateway, who used information for Govee advertisement format from
 github.com/Thrilleratplay/GoveeWatcher
 
-### INSTALLATION:
+#### Installation
 
-#### Install dependencies:
+##### Install dependencies
  ```
  sudo apt-get install python3-pip libglib2.0-dev
  sudo pip3 install bluepy
@@ -26,22 +26,26 @@ github.com/Thrilleratplay/GoveeWatcher
  sudo apt-get install influxdb
  sudo apt-get install chronograf
 ```
-*Note* this was designed to work influx db 1.x, as it's 32 bit and will run on older hardware. This will work on a Zero 2 W but it's over specified for this application.
+*Note* this was designed to work influx db 1.x, as it's 32 bit and will run on older hardware.
 
-#### Create the influx database:
+
+##### Configure Influx
+
+The Influx CLI must be used to set up the databases. Start the shell by running `influx`
+
+##### Create the influx database
 ```
-influx
 CREATE DATABASE "hygrometers"
 ```
 
-#### Configure the influxdb retention policies
+##### Configure the influxdb retention policies
 One for 1 day and one for infinity which will be used for downsampling
 ```
 CREATE RETENTION POLICY "1day" ON "hygrometers" DURATION 1d REPLICATION 1 DEFAULT
 CREATE RETENTION POLICY "inf" on "hygrometers" DURATION inf REPLICATION 1
 ```
 
-#### Configure the influxdb continuous query to downsample the data
+##### Configure the influxdb continuous query to downsample the data
 ```
 CREATE CONTINUOUS QUERY "cq1m" ON "hygrometers" BEGIN SELECT mean(temp_C) as temp_C, mean(humidity_percent) as humidity_percent, mean(battery_percent) as battery_percent INTO "hygrometers"."inf"."TempHumidityDownsampled" FROM "TempHumidity" GROUP BY time(1min), MAC, site, location, device_name END             
 ```
@@ -75,18 +79,21 @@ AD4F = Bedroom
 
 The configuration file is read when the script first executes, restart it to read any changes.
 
-### RUNNING:
+#### RUNNING:
 
-#### Run from the command line
-Needs sudo to run on Raspbian:
+##### Run from the command line
+Needs sudo to run on Raspbian
+
 `sudo python3 govee_gateway.py`
 
-Run in background:
+Run in background
+
 `sudo nohup python3 govee_gateway.py &`
 
-#### Run as a service
+##### Run as a service
 
-Create a service file:
+Create a service file
+
 `sudo nano /etc/systemd/system/govee_gateway.service`
 
 Add the following to the file:
@@ -103,10 +110,12 @@ User=root
 [Install]
 WantedBy=multi-user.target
 ```
+
 Enable and start the service:
 ```
 sudo systemctl enable govee_gateway.service
 sudo systemctl start govee_gateway.service
 ```
-Get the status:
+Get the status
+
 `sudo systemctl start govee_gateway.service`
