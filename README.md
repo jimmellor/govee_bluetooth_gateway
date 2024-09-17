@@ -1,16 +1,19 @@
 # govee_bluetooth_gateway
 **Data logger for Govee brand bluetooth sensors**
 
-A python BLE advertisement scanner for the Govee brand
-temperature and humidity sensors. Tested on model H5075 using Raspberry Pi Zero W. Temperature, humidity, and battery level is published to local influxdb database (v1.x) using cronograf for visualization.
+This was created for long-running surveys of temerature and humity , sing low cost bluetooth sensors and common hardware. The visualitation software, Chronograf, is easy to use and allows data to be summarised and downloaded to a any host computer running a browser.
+
+The script itself implements a python Bluetooth BLE advertisement scanner for the Govee brand temperature and humidity sensors. It's been tested on model H5075 using Raspberry Pi Zero W. Temperature, humidity, and battery level time-series data is published to Influxdb database using Chronograf for visualization.
 
 #### How it works
 
-It uses the *bluepy* library to scan for the Govee advertisement packets, reads the temperature, humidity, battery level and signal strength from the advertisement packet and publishes it to an influxdb database. All data is retained fo 24hrs and a continuous query downsamples to 1 minute intervals and stored in a separate measurement infinately. The script is intended to be run as a service and can be started with systemd, run as root.  It reads the configuration from /boot/firmware/govee_gateway.conf.
+It uses the *bluepy* library to scan for the Govee advertisement packets, reads the temperature, humidity, battery level and signal strength from the advertisement packet and publishes it to an influxdb (v1.x) database. All data is retained fo 24hrs and a continuous query downsamples to 1 minute intervals and stored in a separate measurement infinitely. The script is intended to be run as a service and can be started with systemd, run as root.  It reads the configuration from /boot/firmware/govee_gateway.conf.
 
 This has been optimised for 32 bit raspberry pi products like the Pi Zero W.
 
-Chronograph can be used to visualize the data using a browser on another device to access the pi on port 8888 (default).  The data is stored in the "hygrometers" database in the "TempHumidity" measurement, downsampled to 1 minute intervals and stored in the "TempHumidityDownsampled" measurement. Data is tagged with `MAC`, `site`, `location`, `device_name`.  The fields are `temp_C`, `humidity_percent`, `battery_percent`, `rssi`.
+The data is stored in the "hygrometers" database in the "TempHumidity" measurement, downsampled to 1 minute intervals and stored in the "TempHumidityDownsampled" measurement. Data is tagged with `MAC`, `site`, `location`, `device_name`.  The fields are `temp_C`, `humidity_percent`, `battery_percent`, `rssi`.
+
+Chronograph can be used to visualize the data using a browser on another device to access the pi on port 8888 (default). 
 
 #### Credit
 Forked from tsaitsai/govee_bluetooth_gateway, who used information for Govee advertisement format from
@@ -120,3 +123,7 @@ sudo systemctl start govee_gateway.service
 Get the status
 
 `sudo systemctl start govee_gateway.service`
+
+Access the Chronograf interface
+
+Browse to `http://<raspberry pi host>:8888`
