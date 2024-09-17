@@ -39,7 +39,7 @@ CREATE DATABASE "hygrometers"
 ```
 
 ##### Configure the influxdb retention policies
-One for 1 day and one for infinity which will be used for downsampling
+Default for 24 hrs and another for infinity which will be used for downsampling
 ```
 CREATE RETENTION POLICY "1day" ON "hygrometers" DURATION 1d REPLICATION 1 DEFAULT
 CREATE RETENTION POLICY "inf" on "hygrometers" DURATION inf REPLICATION 1
@@ -50,9 +50,10 @@ CREATE RETENTION POLICY "inf" on "hygrometers" DURATION inf REPLICATION 1
 CREATE CONTINUOUS QUERY "cq1m" ON "hygrometers" BEGIN SELECT mean(temp_C) as temp_C, mean(humidity_percent) as humidity_percent, mean(battery_percent) as battery_percent INTO "hygrometers"."inf"."TempHumidityDownsampled" FROM "TempHumidity" GROUP BY time(1min), MAC, site, location, device_name END             
 ```
 
+##### Configure the service
 The configuration file is stored in `/boot/firmware/govee_gateway.conf`
 
-Similar to the way supplicant.conf can be configured headlessly in Raspbian, you can make configuration changes by modifying this file before you switch on the raspberry pi for the first time. Once you've copied the image to the SD card, open it on any computer with a card reader and edit the file that appears in the 'bootfs' partition.
+Similar to the way supplicant.conf can be configured headlessly in Raspbian, you can make configuration changes by modifying this file before you switch on the raspberry pi for the first time. Once you've copied the image to the SD card, open it on any computer with a card reader and edit the file that appears in the _bootfs_ FAT32 partition.
 
 Two sections you should take note of:
 *Site* allows you to specify where the data will be logged, so you can store a location name and lat,long with each record. That should be to identify the location of the logger itself.
@@ -79,7 +80,7 @@ AD4F = Bedroom
 
 The configuration file is read when the script first executes, restart it to read any changes.
 
-#### RUNNING:
+#### Running
 
 ##### Run from the command line
 Needs sudo to run on Raspbian
@@ -111,7 +112,7 @@ User=root
 WantedBy=multi-user.target
 ```
 
-Enable and start the service:
+Enable and start the service
 ```
 sudo systemctl enable govee_gateway.service
 sudo systemctl start govee_gateway.service
