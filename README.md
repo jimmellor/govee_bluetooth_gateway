@@ -1,25 +1,98 @@
 # govee_bluetooth_gateway
-**Bluetooth to MQTT gateway for Govee brand bluetooth sensors.**
+**Data logger for Govee brand bluetooth sensors**
 
-<img src="https://raw.githubusercontent.com/tsaitsai/govee_bluetooth_gateway/main/images/chest_freezer_test.jpg" width="359" height="300">
+This is a python Bluetooth advertisement scanner for the Govee brand Bluetooth
+temperature sensor. Tested on model H5075 using Raspberry Pi Zero W.
+Temperature, humidity, and battery level is published to local influxdb database (v1.x) using cronograf for visualization.
 
-I got a chest freezer recently, and planned to put it in the basement.  Since it's not used frequently, I wanted to keep track of the temperature and send myself a notification in case the freezer breaks down and I need to save the food.
+It uses the *bluepy* library to scan for the Govee advertisement packets, reads the temperature, humidity, battery level and signal strength from the advertisement packet and publishes it to an influxdb database. All data is retained fo 24hrs and a continuous query downsamples to 1 minute intervals and stored in a separate measurement infinately. The script is intended to be run as a service and can be started with systemd, run as root.  It reads the configuration from /boot/firmware/govee_gateway.conf.
 
-I have zigbee temperature sensors that are small and use CR2032 coin cells.  They'll work for a little while, but freezing temperatures may not be best for coin cell battery performance and might necessitate frequent battery changes.  I came across these [Govee brand](https://www.amazon.com/Govee-Temperature-Notification-Hygrometer-Thermometer/dp/B0872X4H4J) Bluetooth temperature sensors that use a pair of AAA batteries.
+This has been optimised for 32 bit raspberry pi products like the Pi Zero W.
 
-If I swap the alkaline AAA batteries out with Energizer Lithium AAA batteries, the sensor should work better in a chest freezer.  The lithium-iron disulfide chemistry in these Energizer AAA batteries perform better in freezing conditions than the Lithium Manganese dioxide chemistry used in typical CR2032 coin cells.  The added capacity should also reduce battery changes.
+Chronograph can be used to visualize the data by browsing to http://<host>:8888.  The data is stored in the "hygrometers" database.  The data is stored in the "TempHumidity" measurement.  The data is downsampled to 1 minute intervals and stored in the "TempHumidityDownsampled" measurement.  The data is stored with the following tags: MAC, site, location, device_name.  The fields are temp_C, humidity_percent, battery_percent, rssi.
 
-<img src="https://raw.githubusercontent.com/tsaitsai/govee_bluetooth_gateway/main/images/chest_freezer_temp_sensor.jpg" width="302" height="403"> <img src="https://raw.githubusercontent.com/tsaitsai/govee_bluetooth_gateway/main/images/battery.jpg" width="403" height="302">
+Credit:
+Forked from tsaitsai/govee_bluetooth_gateway, who used information for Govee advertisement format from
+github.com/Thrilleratplay/GoveeWatcher
 
+##INSTALLATION:
 
-Like a lot of these gateway projects, I wanted to use a Raspberry Pi to read the bluetooth sensor data and act as a dedicated gateway.  I came across this [GoveeWatcher project](https://github.com/Thrilleratplay/GoveeWatcher/issues/2) that explains the how the Govee bluetooth advertisement formats the temperature, humidity, and battery level.  The sensor data is encoded in the advertisement, so no GATT connections needed.  The manufacturer provides mobile apps for typical usage, but it has creepy permissions and it's not useful for my purpose.  Instead, I used the Bluepy library to read the BLE advertisement and parse it out per the description from GoveeWatcher project.  As I'm already using MQTT, Influx, Grafana, and telegraph, it was convenient to publish the sensor data as MQTT messages and visualize it in Grafana.  Then send email notifications using Node-Red.
+###Install dependencies:
+ ```
+ sudo apt-get install python3-pip libglib2.0-dev
+ sudo pip3 install bluepy
+ sudo pip3 install influxdb
+ sudo apt-get install influxdb
+ sudo apt-get install chronograf
+```
 
-<img src="https://raw.githubusercontent.com/tsaitsai/govee_bluetooth_gateway/main/images/chest_freezer-cooldown_warmup.jpg" width="472" height="480">
+###Create the influx database:
+```
+influx
+CREATE DATABASE "hygrometers"
+```
+###Configure the influxdb retention policies
+One for 1 day and one for infinity which will be used for downsampling
+```
+CREATE RETENTION POLICY "1day" ON "hygrometers" DURATION 1d REPLICATION 1 DEFAULT
+CREATE RETENTION POLICY "inf" on "hygrometers" DURATION inf REPLICATION 1
+```
 
-I'm also interested in how the freezer behaves.  How the temperature fluctuates, how many watts it consumes, etc.  It's interesting how long it takes for it to go from -13F back put up to 32F when the power is shut off.  To monitor energy consumption, I used a [wifi outlet](https://www.amazon.com/BN-LINK-Monitoring-Function-Compatible-Assistant/dp/B07VDGM6QR) with built-in current sensor and flashed it with Tasmota via [Tuya Convert](https://github.com/ct-Open-Source/tuya-convert).  This 7 cu-ft Hisense chest freezer uses about 0.7 kWh per day when the unit is totally empty and door kept closed.
+###Configure the influxdb continuous query to downsample the data
+```
+CREATE CONTINUOUS QUERY "cq1m" ON "hygrometers" BEGIN SELECT mean(temp_C) as temp_C, mean(humidity_percent) as humidity_percent, mean(battery_percent) as battery_percent INTO "hygrometers"."inf"."TempHumidityDownsampled" FROM "TempHumidity" GROUP BY time(1min), MAC, site, location, device_name END             
+```
 
-<img src="https://raw.githubusercontent.com/tsaitsai/govee_bluetooth_gateway/main/images/energy_consumption_monitoring.jpg" width="317" height="423">
+The configuration file is stored in `/boot/firmware/govee_gateway.conf`
 
-  I'll update the energy usage once the freezer is more full of food.  I'll also update when I get battery life data.  The Govee bluetooth sensor unfortunately sends out updates way more often than necessary (every couple of seconds).  So the added battery capacity from the AAA batteries may be somewhat negated by the excess data transmissions.
-  
-The chest freezer isn't blocking the signal too much.  The Pi gateway is one level up and one room over from the chest freezer location, and I'm able to receive 3 out of 5 advertisements on average.
+The configuration file is in the following format:
+```
+[influxdb]
+name = hygrometers
+user = admin #default user is admin
+pass = admin #default password is admin
+host = localhost
+port = 8086
+
+[site]
+name = 1 Accacia Ave
+location = lat, long
+
+[hygrometers]
+D34E = Living Room  #last four digits of the MAC address of the hygrometer, also appears in the device name
+AD4F = Bedroom
+```
+
+The configuration file is read at the beginning of the script.  The script will scan for the Govee hygrometers and publish the data to the influxdb database.
+
+Needs sudo to run on Raspbian:
+`sudo python3 govee_gateway.py`
+
+Run in background:
+`sudo nohup python3 govee_gateway.py &`
+
+Run as a service
+Create a service file:
+`sudo nano /etc/systemd/system/govee_gateway.service`
+
+Add the following to the file:
+```
+[Unit]
+Description=Govee Gateway
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/govee_bluetooth_gateway/govee_gateway.py
+User=root
+
+[Install]
+WantedBy=multi-user.target
+```
+Enable and start the service:
+```
+sudo systemctl enable govee_gateway.service
+sudo systemctl start govee_gateway.service
+```
+Get the status:
+`sudo systemctl start govee_gateway.service`
