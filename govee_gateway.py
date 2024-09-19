@@ -121,8 +121,9 @@ logging.basicConfig(
     filemode="a",
     format="{asctime} - {levelname} - {message}",
     style="{",
-     datefmt="%Y-%m-%d %H:%M",
-     )
+    datefmt="%Y-%m-%d %H:%M",
+    level=logging.DEBUG
+)
 
 class ScanDelegate(DefaultDelegate):
     
