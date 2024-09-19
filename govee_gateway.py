@@ -135,7 +135,7 @@ class ScanDelegate(DefaultDelegate):
             #returns a list, of which the [2] item of the [3] tupple is manufacturing data
             adv_list = dev.getScanData()
             adv_manuf_data = adv_list[3][2]
-            logging.debug("adv_list = %s", str(adv_list))
+            logging.info("adv_list = %s", str(adv_list))
 
             #resolve the name of the hygrometer
             try:
@@ -150,8 +150,8 @@ class ScanDelegate(DefaultDelegate):
             battery = adv_manuf_data[12:14]
 
             # need to log output while we get occastional errors
-            logging.debug("temp hum data = %s",  str(temp_hum_data))
-            logging.debug("battery data = %s",  str(battery))
+            logging.info("temp hum data = %s",  str(temp_hum_data))
+            logging.info("battery data = %s",  str(battery))
             val = (int(temp_hum_data, 16))
             
 
