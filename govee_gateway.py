@@ -167,8 +167,7 @@ class ScanDelegate(DefaultDelegate):
                 if (is_negative):
                     temp_C = 0 - temp_C
             except:
-
-                logging.error("issues with integer conversion")
+                logging.error("issues with integer conversion", exc_info=True)
 
             try:
                 battery_percent = int(adv_manuf_data[12:14]) / 64 * 100
@@ -184,7 +183,7 @@ class ScanDelegate(DefaultDelegate):
                 hum_percent = ((int(temp_hum_data, 16)) % 1000) / 10
             except:
                 logging.error("temp_hum_data = ", temp_hum_data)
-                logging.error("issues with humidity conversion from hex to int")
+                logging.error("issues with humidity conversion from hex to int", exc_info=True)
                 hum_percent = 200
             hum_percent = round(hum_percent)
             mac=dev.addr
