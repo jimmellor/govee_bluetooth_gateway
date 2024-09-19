@@ -1,7 +1,7 @@
 # govee_bluetooth_gateway
 **Data logger for Govee brand bluetooth sensors**
 
-This was created for long-running surveys of temerature and humidity, using low cost bluetooth sensors and common hardware. The visualitation software, Chronograf, is easy to use and allows data to be summarised and downloaded to a any host computer running a browser.
+This was created for long-running surveys of temerature and humidity, using low cost bluetooth sensors and common hardware. The visualisation software, Chronograf, is easy to use and allows data to be summarised and downloaded to a any host computer running a browser.
 
 The script itself implements a python Bluetooth BLE advertisement scanner for the Govee brand temperature and humidity sensors. It's been tested on model H5075 using Raspberry Pi Zero W. Temperature, humidity, and battery level time-series data is published to Influxdb database using Chronograf for visualization.
 
@@ -24,10 +24,10 @@ github.com/Thrilleratplay/GoveeWatcher
 ##### Install dependencies
  ```
  sudo apt-get install python3-pip libglib2.0-dev
- sudo pip3 install bluepy
- sudo pip3 install influxdb
  sudo apt-get install influxdb
  sudo apt-get install chronograf
+ sudo pip3 install bluepy
+ sudo pip3 install influxdb
 ```
 *Note* this was designed to work influx db 1.x, as it's 32 bit and will run on older hardware.
 
