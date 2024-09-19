@@ -124,7 +124,7 @@ class ScanDelegate(DefaultDelegate):
 
             #resolve the name of the hygrometer
             try:
-                # get the last five characters of the MAC address, remove the semi-colons, make it uppercase
+                # Resolve device_id get the last five characters of the MAC address, remove the semi-colons, make it uppercase
                 device_id = dev.addr[-5:].replace(":", "").upper()
                 device_name = hygrometer_names[device_id]
             except KeyError: #name doesn't exist in the config file
@@ -134,10 +134,11 @@ class ScanDelegate(DefaultDelegate):
             temp_hum_data = adv_manuf_data[6:12]
             battery = adv_manuf_data[12:14]
 
-            # print("temp hum data = ", temp_hum_data)
+            # need to log output while we get occastional errors
+            print("temp hum data = ", temp_hum_data)
             # print("battery data = ", battery)
-            #convert to integer
             val = (int(temp_hum_data, 16))
+            
 
             #decode tip from eharris: https://github.com/Thrilleratplay/GoveeWatcher/issues/2
             is_negative = False
