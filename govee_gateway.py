@@ -124,10 +124,10 @@ class ScanDelegate(DefaultDelegate):
 
             #resolve the name of the hygrometer
             try:
-                #device_id is the last 4 characters of the Complete Local Name which is in [0][2] of the scan data. It's used to resolve the name in the config file
-                device_id = adv_list[0][2].split("_")[1]
+                # get the last five characters of the MAC address, remove the semi-colons, make it uppercase
+                device_id = dev.addr[-5:].replace(":", "").upper()
                 device_name = hygrometer_names[device_id]
-            except KeyError:
+            except KeyError: #name doesn't exist in the config file
                 device_name = device_id
             
             #this is the location of the encoded temp/humidity and battery data
