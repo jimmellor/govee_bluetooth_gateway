@@ -135,7 +135,7 @@ class ScanDelegate(DefaultDelegate):
             #returns a list, of which the [2] item of the [3] tupple is manufacturing data
             adv_list = dev.getScanData()
             adv_manuf_data = adv_list[3][2]
-            logging.debug("adv_list = %s", adv_list)
+            logging.debug("adv_list = %s", str(adv_list))
 
             #resolve the name of the hygrometer
             try:
@@ -150,8 +150,8 @@ class ScanDelegate(DefaultDelegate):
             battery = adv_manuf_data[12:14]
 
             # need to log output while we get occastional errors
-            logging.debug("temp hum data = %s", temp_hum_data)
-            logging.debug("battery data = %s", battery)
+            logging.debug("temp hum data = %s",  str(temp_hum_data))
+            logging.debug("battery data = %s",  str(battery))
             val = (int(temp_hum_data, 16))
             
 
@@ -173,7 +173,7 @@ class ScanDelegate(DefaultDelegate):
             try:
                 battery_percent = int(adv_manuf_data[12:14]) / 64 * 100
             except:
-                logging.error("adv_manuf_data = %s", adv_manuf_data)
+                logging.error("adv_manuf_data = %s", str(adv_manuf_data))
                 logging.error("issues with battery conversion from hex to int", exc_info=True)
                 battery_percent = 200
             battery_percent = round(battery_percent)
@@ -183,7 +183,7 @@ class ScanDelegate(DefaultDelegate):
             try:
                 hum_percent = ((int(temp_hum_data, 16)) % 1000) / 10
             except:
-                logging.error("temp_hum_data = ", str(temp_hum_data))
+                logging.error("temp_hum_data = %s", str(temp_hum_data))
                 logging.error("issues with humidity conversion from hex to int", exc_info=True)
                 hum_percent = 200
             hum_percent = round(hum_percent)
