@@ -87,6 +87,8 @@ from time import gmtime, strftime, sleep
 from bluepy.btle import Scanner, DefaultDelegate, BTLEException
 import sys
 
+import logging
+
 # influx db imports
 from influxdb import InfluxDBClient
 
@@ -110,6 +112,17 @@ site_location = conf['site']['location']
 
 # hygrometer names
 hygrometer_names = conf['hygrometers']
+
+# logging config
+import logging
+logging.basicConfig(
+    filename="/var/log/govee_gateway.log",
+    encoding="utf-8",
+    filemode="a",
+    format="{asctime} - {levelname} - {message}",
+    style="{",
+     datefmt="%Y-%m-%d %H:%M",
+     )
 
 class ScanDelegate(DefaultDelegate):
     
@@ -135,8 +148,8 @@ class ScanDelegate(DefaultDelegate):
             battery = adv_manuf_data[12:14]
 
             # need to log output while we get occastional errors
-            print("temp hum data = ", temp_hum_data)
-            # print("battery data = ", battery)
+            logging.debug("temp hum data = ", temp_hum_data)
+            logging.debug("battery data = ", battery)
             val = (int(temp_hum_data, 16))
             
 
@@ -153,11 +166,14 @@ class ScanDelegate(DefaultDelegate):
                 if (is_negative):
                     temp_C = 0 - temp_C
             except:
-                print("issues with integer conversion")
+
+                logging.error("issues with integer conversion")
 
             try:
                 battery_percent = int(adv_manuf_data[12:14]) / 64 * 100
             except:
+                logging.error("adv_manuf_data = ", adv_manuf_data)
+                logging.error("issues with battery conversion from hex to int")
                 battery_percent = 200
             battery_percent = round(battery_percent)
 
@@ -166,6 +182,8 @@ class ScanDelegate(DefaultDelegate):
             try:
                 hum_percent = ((int(temp_hum_data, 16)) % 1000) / 10
             except:
+                logging.error("temp_hum_data = ", temp_hum_data)
+                logging.error("issues with humidity conversion from hex to int")
                 hum_percent = 200
             hum_percent = round(hum_percent)
             mac=dev.addr
