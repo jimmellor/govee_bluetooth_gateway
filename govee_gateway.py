@@ -149,8 +149,8 @@ class ScanDelegate(DefaultDelegate):
             battery = adv_manuf_data[12:14]
 
             # need to log output while we get occastional errors
-            logging.debug("temp hum data = ", temp_hum_data)
-            logging.debug("battery data = ", battery)
+            logging.debug("temp hum data = ", str(temp_hum_data))
+            logging.debug("battery data = ", str(battery))
             val = (int(temp_hum_data, 16))
             
 
@@ -173,7 +173,7 @@ class ScanDelegate(DefaultDelegate):
                 battery_percent = int(adv_manuf_data[12:14]) / 64 * 100
             except:
                 logging.error("adv_manuf_data = ", adv_manuf_data)
-                logging.error("issues with battery conversion from hex to int")
+                logging.error("issues with battery conversion from hex to int", exc_info=True)
                 battery_percent = 200
             battery_percent = round(battery_percent)
 
@@ -182,7 +182,7 @@ class ScanDelegate(DefaultDelegate):
             try:
                 hum_percent = ((int(temp_hum_data, 16)) % 1000) / 10
             except:
-                logging.error("temp_hum_data = ", temp_hum_data)
+                logging.error("temp_hum_data = ", str(temp_hum_data))
                 logging.error("issues with humidity conversion from hex to int", exc_info=True)
                 hum_percent = 200
             hum_percent = round(hum_percent)
