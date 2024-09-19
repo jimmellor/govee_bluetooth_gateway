@@ -135,7 +135,7 @@ class ScanDelegate(DefaultDelegate):
             #returns a list, of which the [2] item of the [3] tupple is manufacturing data
             adv_list = dev.getScanData()
             adv_manuf_data = adv_list[3][2]
-            logger.debug("adv_list = ", adv_list)
+            logging.debug("adv_list = ", adv_list)
 
             #resolve the name of the hygrometer
             try:
