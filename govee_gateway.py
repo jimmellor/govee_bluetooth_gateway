@@ -142,7 +142,7 @@ class ScanDelegate(DefaultDelegate):
 
             
             try:
-                if 'GVH5075' not in adv_list[0]:
+                if 'GVH5075' not in adv_list[0][0]:
                     logging.info("Not a Govee Hygrometer")
                     return
                 else:
