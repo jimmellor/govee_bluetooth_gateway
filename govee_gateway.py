@@ -138,7 +138,7 @@ class ScanDelegate(DefaultDelegate):
             logging.info("adv_list = %s", str(adv_list))
 
             # validate this is a Govee Hygrometer device we are looking at by checking if the string 'GVH5075' is in the adv_manuf_data anywhere
-            if 'GVH5075' not in adv_manuf_data:
+            if 'GVH5075' not in adv_list:
                 return
             else:
                 #resolve the name of the hygrometer
