@@ -133,91 +133,98 @@ class ScanDelegate(DefaultDelegate):
         #if (dev.addr == "a4:c1:38:xx:xx:xx") or (dev.addr == "a4:c1:38:xx:xx:xx"):
         if dev.addr[:8]=="a4:c1:38":
             #returns a list, of which the [2] item of the [3] tupple is manufacturing data
+            #example: [(9, 'Complete Local Name', 'GVH5075_25DE'), (3, 'Complete 16b Services', '0000ec88-0000-1000-8000-00805f9b34fb'), (1, 'Flags', '05'), (255, 'Manufacturer', '88ec00034a8e6400')]
             adv_list = dev.getScanData()
             adv_manuf_data = adv_list[3][2]
             logging.info("adv_list = %s", str(adv_list))
 
-            # validate this is a Govee Hygrometer device we are looking at by checking if the string 'GVH5075' is in the adv_manuf_data anywhere
-            if 'GVH5075' not in adv_list:
-                return
-            else:
-                #resolve the name of the hygrometer
-                try:
-                    # Resolve device_id get the last five characters of the MAC address, remove the semi-colons, make it uppercase
-                    device_id = dev.addr[-5:].replace(":", "").upper()
-                    device_name = hygrometer_names[device_id]
-                except KeyError: #name doesn't exist in the config file
-                    device_name = device_id
-                
-                #this is the location of the encoded temp/humidity and battery data
-                temp_hum_data = adv_manuf_data[6:12]
-                battery = adv_manuf_data[12:14]
+            # validate this is a Govee Hygrometer device we are looking at by checking if the string 'GVH5075' is in adv_list
 
-                # need to log output while we get occastional errors
-                logging.info("temp hum data = %s",  str(temp_hum_data))
-                logging.info("battery data = %s",  str(battery))
-                val = (int(temp_hum_data, 16))
-                
+            
+            try:
+                if 'GVH5075' not in adv_list[0]:
+                    return
+                else:
+                    #resolve the name of the hygrometer
+                    try:
+                        # Resolve device_id get the last five characters of the MAC address, remove the semi-colons, make it uppercase
+                        device_id = dev.addr[-5:].replace(":", "").upper()
+                        device_name = hygrometer_names[device_id]
+                    except KeyError: #name doesn't exist in the config file
+                        device_name = device_id
+                    
+                    #this is the location of the encoded temp/humidity and battery data
+                    temp_hum_data = adv_manuf_data[6:12]
+                    battery = adv_manuf_data[12:14]
 
-                #decode tip from eharris: https://github.com/Thrilleratplay/GoveeWatcher/issues/2
-                is_negative = False
-                temp_C = 500
-                humidity = 500
-                if (val & 0x800000):
-                    is_negative = True
-                    val = val ^ 0x800000
-                try:
-                    humidity = (val % 1000) / 10
-                    temp_C = int(val / 1000) / 10
-                    if (is_negative):
-                        temp_C = 0 - temp_C
-                except:
-                    logging.error("issues with integer conversion", exc_info=True)
+                    # need to log output while we get occastional errors
+                    logging.info("temp hum data = %s",  str(temp_hum_data))
+                    logging.info("battery data = %s",  str(battery))
+                    val = (int(temp_hum_data, 16))
+                    
 
-                try:
-                    battery_percent = int(adv_manuf_data[12:14]) / 64 * 100
-                except:
-                    logging.error("adv_manuf_data = %s", str(adv_manuf_data))
-                    logging.error("issues with battery conversion from hex to int", exc_info=True)
-                    battery_percent = 200
-                battery_percent = round(battery_percent)
+                    #decode tip from eharris: https://github.com/Thrilleratplay/GoveeWatcher/issues/2
+                    is_negative = False
+                    temp_C = 500
+                    humidity = 500
+                    if (val & 0x800000):
+                        is_negative = True
+                        val = val ^ 0x800000
+                    try:
+                        humidity = (val % 1000) / 10
+                        temp_C = int(val / 1000) / 10
+                        if (is_negative):
+                            temp_C = 0 - temp_C
+                    except:
+                        logging.error("issues with integer conversion", exc_info=True)
 
-                temp_F = round(temp_C*9/5+32, 1)
+                    try:
+                        battery_percent = int(adv_manuf_data[12:14]) / 64 * 100
+                    except:
+                        logging.error("adv_manuf_data = %s", str(adv_manuf_data))
+                        logging.error("issues with battery conversion from hex to int", exc_info=True)
+                        battery_percent = 200
+                    battery_percent = round(battery_percent)
 
-                try:
-                    hum_percent = ((int(temp_hum_data, 16)) % 1000) / 10
-                except:
-                    logging.error("temp_hum_data = %s", str(temp_hum_data))
-                    logging.error("issues with humidity conversion from hex to int", exc_info=True)
-                    hum_percent = 200
-                hum_percent = round(hum_percent)
-                mac=dev.addr
-                signal = dev.rssi
+                    temp_F = round(temp_C*9/5+32, 1)
 
-                # createa a json object for influxdb client with the temperature, humidity, battery, rssi, timestamp in the format "2009-11-10T23:00:00Z"
-                time = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
-                json_body = [
-                    {
-                        "measurement": "TempHumidity",
-                        "time": time,
-                        "tags": {
-                            "MAC": mac,
-                            "site": site_name,
-                            "location": site_location,
-                            "device_name": device_name
-                        },
-                        "fields": {
-                            "temp_C": temp_C,
-                            "humidity_percent": hum_percent,
-                            "battery_percent": battery_percent,
-                            "ressi": signal
+                    try:
+                        hum_percent = ((int(temp_hum_data, 16)) % 1000) / 10
+                    except:
+                        logging.error("temp_hum_data = %s", str(temp_hum_data))
+                        logging.error("issues with humidity conversion from hex to int", exc_info=True)
+                        hum_percent = 200
+                    hum_percent = round(hum_percent)
+                    mac=dev.addr
+                    signal = dev.rssi
+
+                    # createa a json object for influxdb client with the temperature, humidity, battery, rssi, timestamp in the format "2009-11-10T23:00:00Z"
+                    time = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
+                    json_body = [
+                        {
+                            "measurement": "TempHumidity",
+                            "time": time,
+                            "tags": {
+                                "MAC": mac,
+                                "site": site_name,
+                                "location": site_location,
+                                "device_name": device_name
+                            },
+                            "fields": {
+                                "temp_C": temp_C,
+                                "humidity_percent": hum_percent,
+                                "battery_percent": battery_percent,
+                                "ressi": signal
+                            }
                         }
-                    }
-                ]
+                    ]
 
-
-                # write the json object to the influxdb
-                influxdbclient.write_points(json_body)
+                    # write the json object to the influxdb
+                    influxdbclient.write_points(json_body)
+            except IndexError: #adv_list[0] doesn't exist, we don't know what the device is
+                logging.error("adv_list = %s", str(adv_list))
+                logging.error("adv_manuf_data = %s", str(adv_manuf_data))
+                logging.error("issues with adv_list[0]", exc_info=True)      
 
 scanner = Scanner().withDelegate(ScanDelegate())
 
