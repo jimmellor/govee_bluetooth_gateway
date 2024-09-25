@@ -222,7 +222,12 @@ class ScanDelegate(DefaultDelegate):
                     ]
 
                     # write the json object to the influxdb
-                    influxdbclient.write_points(json_body)
+                    try:
+                        influxdbclient.write_points(json_body)
+                    except InfluxDBServerError:
+                        logging.error("json_body = %s", json_body)
+                        logging.error("InfluxDBServerError", exc_info=True)   
+                        
             except IndexError: #adv_list[0] doesn't exist, we don't know what the device is
                 logging.error("adv_list = %s", str(adv_list))
                 logging.error("adv_manuf_data = %s", str(adv_manuf_data))
